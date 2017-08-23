@@ -1,6 +1,7 @@
 package goworker
 
 import (
+	"encoding/json"
 	"reflect"
 	"testing"
 )
@@ -40,7 +41,7 @@ func TestWorkerMarshalJSON(t *testing.T) {
 }
 
 func TestEnqueue(t *testing.T) {
-	expectedArgs := []interface{}{"a", "lot", "of", "params"}
+	expectedArgs := json.RawMessage(`["a", "lot", "of", "params"]`)
 	jobName := "SomethingCool"
 	queueName := "testQueue"
 	expectedJob := &Job{
@@ -60,17 +61,25 @@ func TestEnqueue(t *testing.T) {
 		t.Errorf("Error while enqueue %s", err)
 	}
 
-	actualArgs := []interface{}{}
+	var (
+		actualArgs       json.RawMessage
+		actual, expected []string
+	)
+
 	actualQueueName := ""
-	Register(jobName, func(queue string, args ...interface{}) error {
-		actualArgs = args
+	Register(jobName, func(queue string, args *json.RawMessage) error {
+		actualArgs = *args
 		actualQueueName = queue
 		return nil
 	})
 	if err := Work(); err != nil {
 		t.Errorf("(Enqueue) Failed on work %s", err)
 	}
-	if !reflect.DeepEqual(actualArgs, expectedArgs) {
+
+	json.Unmarshal(expectedArgs, &expected)
+	json.Unmarshal(actualArgs, &actual)
+
+	if !reflect.DeepEqual(actual, expected) {
 		t.Errorf("(Enqueue) Expected %v, actual %v", actualArgs, expectedArgs)
 	}
 	if !reflect.DeepEqual(actualQueueName, queueName) {

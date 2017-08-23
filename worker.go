@@ -151,5 +151,5 @@ func (w *worker) run(job *Job, workerFunc workerFunc) {
 		w.start(conn, job)
 		PutConn(conn)
 	}
-	err = workerFunc(job.Queue, job.Payload.Args...)
+	err = workerFunc(job.Queue, &job.Payload.Args)
 }
